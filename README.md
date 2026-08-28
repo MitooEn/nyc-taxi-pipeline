@@ -31,7 +31,7 @@ These exist for future learning reference.
 ## Tech stack
 
 PySpark 4.1.2 · Apache Kafka 4.3.1 (KRaft) · Apache Airflow 3.3.0 · PostgreSQL 16 · ClickHouse
-26.3 · Docker Compose · Power BI
+26.3 · Docker · Power BI · PyTest · GitHub Actions · Parquet
 
 ---
 
