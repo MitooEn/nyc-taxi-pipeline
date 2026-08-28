@@ -1,0 +1,251 @@
+services:
+  spark-master:
+    image: apache/spark:4.1.2
+    container_name: spark-master
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+    ports:
+      # host:container (container side defined by image, can't change)
+      # For web ui
+      - "8080:8080"
+      - "4040:4040"
+    volumes:
+      # All 3 of these are bind mount (read/write access)
+      # Container (right) get its data from : host (left) path and then when 
+      # we write code that run inside container, we reference the container path (right)
+      - ./data:/data
+      - ./src:/src
+      - ./tools:/tools
+      # Sets where Spark can download and store JAR packages (needed because the container user has no home directory)
+      # right side because it's where spark check for config (build into image)
+      - ./spark-conf/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf
+    # Make sure it's up and running before anything connect to it
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080 || exit 1"]
+      interval: 5s
+      retries: 10
+
+  spark-worker-1:
+    image: apache/spark:4.1.2
+    container_name: spark-worker-1
+    # Spark master container side port is 7077
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    environment:
+      - SPARK_WORKER_CORES=6
+      - SPARK_WORKER_MEMORY=1g
+    volumes:
+      - ./data:/data
+      - ./src:/src
+      - ./tools:/tools
+      - ./spark-conf/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf
+
+  kafka:
+    image: apache/kafka:4.3.1
+    container_name: kafka
+    ports:
+      # Needed for producer (local) manual run
+      - "29092:29092"
+    environment:
+      # Tell kafka <LISTENER>://:<listen-from-what>
+      # Only controller must use "CONTROLLER"
+      # 9092 and 9093 is container side only, no need to connect to host
+      KAFKA_LISTENERS: INTERNAL://:9092,CONTROLLER://:9093,EXTERNAL://:29092
+      # After kafka receive message from port, client (e.g.: spark) connect through advertised listeners
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:29092
+      # No encryption and authentication for local use only
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      # ID@hostname:port. Which controller can vote for cluster management
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+
+      # For clarity only, default is PLAINTEXT
+      # Only 1 broker, no inter broker communication actually happen
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      
+      # How many copies of offset data (fault tolerance)
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    volumes:
+      # Store container data at <volume name> (left) : with reference path in container as (right)
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      interval: 5s
+      retries: 10
+
+  streaming-ingest:
+    image: apache/spark:4.1.2
+    container_name: streaming-ingest
+    command: /opt/spark/bin/spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.13:4.1.2 /src/streaming_ingest.py
+    depends_on:
+      spark-master:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./data:/data
+      - ./src:/src
+      - ./spark-conf/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf
+    restart: unless-stopped
+
+  streaming-analytics:
+    image: apache/spark:4.1.2
+    container_name: streaming-analytics
+    command: /opt/spark/bin/spark-submit --packages org.apache.spark:spark-sql-kafka-0-10_2.13:4.1.2 /src/streaming_analytics.py
+    depends_on:
+      spark-master:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./data:/data
+      - ./src:/src
+      - ./spark-conf/spark-defaults.conf:/opt/spark/conf/spark-defaults.conf
+    restart: unless-stopped
+
+
+  # Use postgres for airflow's metadata database to track DAG runs, task states, connections, etc.
+  airflow-postgres:
+    image: postgres:16
+    container_name: airflow-postgres
+    environment:
+      # Fine to show for local use
+      POSTGRES_USER: user1
+      POSTGRES_PASSWORD: pass1
+      POSTGRES_DB: airflow_db
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "user1", "-d", "airflow_db"]
+      interval: 5s
+      retries: 10
+
+  # Creates/updates Airflow's metadata tables, then exits.
+  # Kept separate from the scheduler so that with multiple schedulers/workers,
+  # several containers would not race to migrate the same schema at once.
+  airflow-init:
+    # To allow spark submit from airflow to read/write data written by spark container
+    # Now both have same uid:gid
+    user: "185:0"
+    build: ./airflow
+    image: airflow-spark:3.3.0
+    container_name: airflow-init
+    command: db migrate
+    depends_on:
+      airflow-postgres:
+        condition: service_healthy
+    environment: &airflow-env
+      # How and where tasks run
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      # Connection to database
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://user1:pass1@airflow-postgres/airflow_db
+      # Load example DAG, no need
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
+      # Give admin position whoever open airflow ui. Fine for local use.
+      AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "true"
+      # scheme://service-name:port-to-service
+      AIRFLOW_CONN_SPARK_DEFAULT: 'spark://spark-master:7077'
+      # By default it's http://localhost:8080/execution/, but that is with assumption they share a network
+      # namespace. Here apiserver and scheduler are a container of their own with their respective network
+      # namespace, so we need to manually point apiserver (port 8080) to let scheduler know where to talk to.
+      AIRFLOW__CORE__EXECUTION_API_SERVER_URL: 'http://airflow-apiserver:8080/execution/'
+      # Basically encryption for JWT (token-based authentication mechanism). Every container must share the
+      # same signing secret or verification fails.
+      AIRFLOW__API_AUTH__JWT_SECRET: 'use-whatever-for-local-use-only'
+    volumes: &airflow-volumes
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./src:/src
+      - ./data:/data
+      - ./jars:/tmp/jars
+
+  airflow-apiserver:
+    user: "185:0"
+    image: airflow-spark:3.3.0
+    container_name: airflow-apiserver
+    command: api-server
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    environment: *airflow-env
+    volumes: *airflow-volumes
+    ports:
+      # 8082 on the host because 8080 (spark master) and 8081 (spark worker) are taken
+      - "8082:8080"
+
+  airflow-scheduler:
+    user: "185:0"
+    image: airflow-spark:3.3.0
+    container_name: airflow-scheduler
+    command: scheduler
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    environment: *airflow-env
+    volumes: *airflow-volumes
+    ports:
+      # Access for spark driver inside airflow
+      - "4041:4040"
+    
+
+  airflow-dag-processor:
+    user: "185:0"
+    image: airflow-spark:3.3.0
+    container_name: airflow-dag-processor
+    command: dag-processor
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    environment: *airflow-env
+    volumes: *airflow-volumes
+  
+  airflow-triggerer:
+    # When an operator occupy a worker slot but is still waiting for some external event to finish
+    # triggerer free up the worker slot for something else, once the event is done, the task is resumed
+    user: "185:0"
+    image: airflow-spark:3.3.0
+    container_name: airflow-triggerer
+    command: triggerer
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    environment: *airflow-env
+    volumes: *airflow-volumes
+  
+  clickhouse:
+    image: clickhouse/clickhouse-server:26.3
+    container_name: clickhouse
+    ports:
+      # Connect clickhouse to powerBi and JDBC driver
+      - "8123:8123"
+      # Native protocol, to use clickhouse-client in cli
+      - "9000:9000"
+    environment:
+      # To allow connection from http/JDBC
+      # Credential shown, fine for local use
+      CLICKHOUSE_USER: user1
+      CLICKHOUSE_PASSWORD: pass1
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      # ro -> read only on this bind mount
+      - ./data/reference:/var/lib/clickhouse/user_files/reference:ro
+      # Run sql and create table
+      - ./clickhouse:/docker-entrypoint-initdb.d:ro
+    ulimits:
+      nofile: 
+      # Soft and hard limit on how many files can be opened
+      # These are the minimum value
+        soft: 262144
+        hard: 262144
+
+volumes:
+  kafka-data:
+  postgres-data:
+  clickhouse-data:
