@@ -37,7 +37,7 @@ PySpark 4.1.2 · Apache Kafka 4.3.1 (KRaft) · Apache Airflow 3.3.0 · PostgreSQ
 
 ## Architecture
 
-![image](https://github.com/darrenrio529-beep/nyc-taxi-pipeline/blob/f8a20d57f0518f582f4e8ead52e5e6e7833a393b/architecture.png)
+![image](https://github.com/MitooEn/nyc-taxi-pipeline/blob/663a89b5ac83298398e21e97fc2887794afde340/architecture.png)
 
 Twelve containers inside Docker. Producer simulate data stream to Kafka. Kafka feeds two independent consumers, 
 one writing into bronze and the other compute 15-minute sliding-window net flow per zone to simulate live update on dashboard.
