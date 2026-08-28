@@ -1,6 +1,6 @@
 # NYC Taxi Data Pipeline
 
-An automated batch and streaming data pipeline over NYC Yellow Taxi trip records, running
+Batch and streaming data pipeline over NYC Yellow Taxi trip records, running
 locally with Docker: Spark for compute, Kafka for the event stream, Airflow for
 orchestration, ClickHouse as the serving layer, Power BI for the dashboard.
 
