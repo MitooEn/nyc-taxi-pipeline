@@ -2,8 +2,74 @@
 
 ## Prerequisites
 
----
+### Folder Structure
+```
+nyc-taxi-pipeline/
+├── README.md
+├── docker-compose.yml
+├── .gitignore
+├── architecture.png
+│
+├── .github/
+│   └── workflows/
+│       └── tests.yml
+│
+├── docs/
+│   ├── DESIGN.md
+│   ├── SETUP.md
+│   ├── DEBUGGING.md
+│   └── LIMITATIONS.md
+│
+├── airflow/
+│   ├── Dockerfile
+│   ├── dags/
+│   │   └── taxi_pipeline_dag.py
+│   └── logs/                     gitignored, create before first run
+│
+├── src/
+│   ├── ingest.py
+│   ├── cleaning.py
+│   ├── aggregate.py
+│   ├── load_clickhouse.py
+│   ├── producer.py
+│   ├── streaming_ingest.py
+│   └── streaming_analytics.py
+│
+├── tools/
+│   └── read_parquet_bronze.py
+│
+├── tests/
+│   ├── conftest.py
+│   ├── test_ingest.py
+│   ├── test_cleaning.py
+│   └── test_aggregate.py
+│
+├── clickhouse/
+│   ├── 01_gold_schema.sql
+│   └── 02_streaming_schema.sql
+│
+├── spark-conf/
+│   └── spark-defaults.conf
+│
+├── jars/                         gitignored
+│   └── clickhouse-jdbc-0.9.7-all.jar
+│
+└── data/                         gitignored
+    ├── raw/
+    │   ├── yellow_tripdata_2026-01.parquet
+    │   ├── yellow_tripdata_2026-02.parquet
+    │   └── yellow_tripdata_2026-03.parquet
+    ├── reference/
+    │   └── taxi_zone_lookup.csv
+    ├── bronze/
+    │   ├── batch/
+    │   └── streaming/
+    ├── silver/
+    ├── gold/
+    └── checkpoints/
+```
 
+---
 ### Data
 Download Yellow Taxi Trip Records from
 (https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page):
