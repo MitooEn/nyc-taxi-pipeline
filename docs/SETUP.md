@@ -24,7 +24,7 @@ nyc-taxi-pipeline/
 │   ├── Dockerfile
 │   ├── dags/
 │   │   └── taxi_pipeline_dag.py
-│   └── logs/                     gitignored, create before first run
+│   └── logs/                                     <- gitignored, create before first run
 │
 ├── src/
 │   ├── ingest.py
@@ -51,10 +51,10 @@ nyc-taxi-pipeline/
 ├── spark-conf/
 │   └── spark-defaults.conf
 │
-├── jars/                         gitignored
+├── jars/                                         <- gitignored
 │   └── clickhouse-jdbc-0.9.7-all.jar
 │
-└── data/                         gitignored
+└── data/                                         <- gitignored
     ├── raw/
     │   ├── yellow_tripdata_2026-01.parquet
     │   ├── yellow_tripdata_2026-02.parquet
