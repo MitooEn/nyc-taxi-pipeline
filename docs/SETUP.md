@@ -24,7 +24,7 @@ nyc-taxi-pipeline/
 │   ├── Dockerfile
 │   ├── dags/
 │   │   └── taxi_pipeline_dag.py
-│   └── logs/                                     <- gitignored, create before first run
+│   └── logs/                                     <- gitignored
 │
 ├── src/
 │   ├── ingest.py
