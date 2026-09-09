@@ -87,23 +87,17 @@ Put the data in such a directory:
 ---
 
 ### Dependencies
-Download **JDBC driver.** `clickhouse-jdbc-0.9.7-all.jar`:
-(https://github.com/ClickHouse/clickhouse-java/releases/tag/v0.9.7)
+1. Download **JDBC driver.** `clickhouse-jdbc-0.9.7-all.jar`:
+(https://github.com/ClickHouse/clickhouse-java/releases/tag/v0.9.7).
+Put into: `jars/clickhouse-jdbc-0.9.7-all.jar`
 
-Put into:
 
-`jars/clickhouse-jdbc-0.9.7-all.jar`
-
----
-
-**Python packages** for the producer and tests:
+3. **Python packages** for the producer and tests:
 ```powershell
 pip install kafka-python pandas pytest pyspark==4.1.2
 ```
 
----
-
-Download PowerBI
+3. Download **PowerBI**
 
 ---
 
