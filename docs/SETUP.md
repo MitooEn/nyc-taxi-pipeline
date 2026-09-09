@@ -92,7 +92,7 @@ Put the data in such a directory:
 Put into: `jars/clickhouse-jdbc-0.9.7-all.jar`
 
 
-3. **Python packages** for the producer and tests:
+2. **Python packages** for the producer and tests:
 ```powershell
 pip install kafka-python pandas pytest pyspark==4.1.2
 ```
