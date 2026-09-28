@@ -145,6 +145,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# NOTE: no .cache() and no manual spark.sql.shuffle.partitions override, see README
-# "Performance investigation" section for the reasoning (AQE + cardinality findings).
