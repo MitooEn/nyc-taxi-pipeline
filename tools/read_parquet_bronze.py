@@ -33,14 +33,15 @@ def summarise_partitions(df):
 
 
 def summarise_nulls(df):
-    """Spark cannot use a null as a partition value, so null's existance imply the existance
+    """Spark cannot use a null as a partition value, so null's existence imply the existence
     of __HIVE_DEFAULT_PARTITION__ directory. The directory's presence means there are some
     message that should have gone to kafka's dlq query instead
     """
     return df.select(
         count("*").alias("total_rows"),
         count(when(col("pickup_date").isNull(), 1)).alias("null_pickup_date"),
-        count(when(col("passenger_count").isNull(), 1)).alias("null_passengers"),
+        count(when(col("passenger_count").isNull(), 1)).alias(
+            "null_passengers"),
         count(when(col("RatecodeID").isNull(), 1)).alias("null_ratecode"),
     )
 

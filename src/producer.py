@@ -64,7 +64,7 @@ def send_malformed_samples(topic="taxi-trips-raw"):
     json string: "hello", "{not a json"
 
     As the sample get serialized, they are converted into a json string, 
-    which from_json (in ingest_streaming) parse into a struct of nulls.
+    which from_json (in streaming_ingest) parse into a struct of nulls.
     """
     raw_producer = get_producer()
     broken = [

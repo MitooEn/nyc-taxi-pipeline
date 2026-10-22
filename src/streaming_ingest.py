@@ -132,7 +132,7 @@ def main():
     valid, invalid = split_valid_invalid(parsed)
 
     logger.info("Starting bronze sink:")
-    # Different checkpoint to prevent conflictiing metadata
+    # Different checkpoint to prevent conflicting metadata
     bronze_query = prepare_for_bronze(valid).writeStream \
         .outputMode("append") \
         .format("parquet") \

@@ -51,7 +51,7 @@ A zero-row guardrail exists to prevent Spark from writing an empty DataFrame.
 | Filter `0 < trip_distance <= 100` | Excludes zero-distance and implausibly long trips. |
 | Filter `tpep_dropoff_datetime > tpep_pickup_datetime` | Excludes zero trip duration record. |
 | Filter `PULocationID` / `DOLocationID` within `1–263` | TLC's documented valid zone range. |
-| Filter `fare_amount >= 0`, `total_amount >= 0` | Excludes negative fares. |
+| Filter `fare_amount >= 0`, `tip_amount >= 0`, `total_amount >= 0` | Excludes negative fares. |
 
 An initial `passenger_count > 0` filter dropped ~29% of rows. Splitting the
 count into `isNull()` versus `== 0` showed almost all were nulls rather than
@@ -100,7 +100,7 @@ a service.
 ### DAG catchup and max_active_runs
 The DAG runs with `catchup=False` to prevent months with no data from running
 when DAG is triggered manually through backfilling. `max_active_runs=1` is set 
-to due to memory constraint. Computer with more memory for Spark can remove this.
+due to memory constraint. Computer with more memory for Spark can remove this.
 
 ### Custom airflow image
 
@@ -224,7 +224,6 @@ in a local `local[1]` SparkSession instead of than the Docker cluster.
 - **`test_ingest.py`** -- path construction, `pickup_date` derivation, and the
   zero-row guardrail
 - **`test_cleaning.py`** -- one or more tests per cleaning rule except `drop_duplicates`
-  and the drop-rate guardrail
 - **`test_aggregate.py`** -- each summary builder and ensuring left join
   keeps trips with an unmatched location ID
 

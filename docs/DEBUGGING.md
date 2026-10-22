@@ -53,6 +53,7 @@ WARN FileUtil: Failed to delete file or dir
 WARN FileUtil: Failed to delete file or dir
   [/data/bronze/taxi_trips/pickup_date=2026-01-01/part-00000-...]
 ```
+Note: this happens before streaming path were added, hence the path in the error message
 
 Repeated for every file. Logged at WARN, so the job ran past them and failed
 later when it tried to write into a directory it had not managed to clear.

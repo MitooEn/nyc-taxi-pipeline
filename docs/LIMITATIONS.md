@@ -58,6 +58,15 @@ will require secrecy.
 
 ---
 
+## SQL injection
+
+- **Unsanitized YYYY-MM input on load_clickhouse.py** `--year-month` is never
+  checked against the `YYYY-MM` format. `load_clickhouse.py` interpolates it
+  directly into an `ALTER TABLE ... DROP PARTITION '{year_month}'` statement.
+  Fine for local use in this case.
+
+---
+
 ## Operational gaps
 
 - **A single Kafka partition** on every topic means no consumer-group

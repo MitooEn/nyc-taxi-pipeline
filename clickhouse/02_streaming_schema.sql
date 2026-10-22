@@ -67,7 +67,7 @@ SELECT * FROM file('/var/lib/clickhouse/user_files/reference/taxi_zone_lookup.cs
 
 
 -- FINAL -> force ReplacingMergeTree deduplication
--- View is only created wwhen we query it
+-- View is only created when we query it
 CREATE OR REPLACE VIEW zone_net_flow_named AS
 SELECT
     n.window_start,

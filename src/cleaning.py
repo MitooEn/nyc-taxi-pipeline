@@ -38,7 +38,7 @@ def drop_duplicates(df):
 def fill_optional_fees(df):
     # Fill nulls in fee/surcharge columns and passenger_count with documented or imputed defaults.
     return df.fillna({
-        # ~29% null rate; imputed rather than dropped (see README)
+        # ~29% null rate; imputed rather than dropped (see DESIGN.md)
         "passenger_count": 1,
         "extra": 0,
         "mta_tax": 0.5,  # verified 2026 rate
