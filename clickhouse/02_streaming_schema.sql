@@ -73,7 +73,7 @@ SELECT
     n.window_start,
     n.window_end,
     n.zone_id,
-    z.Zone    AS zone_name,
+    z.Zone AS zone_name,
     z.Borough AS borough,
     n.taxi_net_flow
 FROM zone_net_flow AS n FINAL
