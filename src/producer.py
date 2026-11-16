@@ -17,6 +17,7 @@ def get_producer(bootstrap_servers="localhost:29092"):
     return KafkaProducer(
         bootstrap_servers=bootstrap_servers,
         # Turn message into json text string then encode to bytes using utf-8 formatting
+        # Kafka broker only accept bytes
         value_serializer=lambda v: json.dumps(v, default=str).encode("utf-8"),
     )
 
