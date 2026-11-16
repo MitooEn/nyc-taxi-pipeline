@@ -35,8 +35,8 @@ services:
     ports:
       - "8081:8081"
     environment:
-      - SPARK_WORKER_CORES=6
-      - SPARK_WORKER_MEMORY=1g
+      - SPARK_WORKER_CORES=4
+      - SPARK_WORKER_MEMORY=2g
     volumes:
       - ./data:/data
       - ./src:/src
@@ -133,6 +133,7 @@ services:
     # To allow spark submit from airflow to read/write data written by spark container
     # Now both have same uid:gid
     user: "185:0"
+    # Build custom airflow-spark image
     build: ./airflow
     image: airflow-spark:3.3.0
     container_name: airflow-init
